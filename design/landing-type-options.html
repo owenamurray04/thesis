@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>thesis — typographic directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@300;400;500&family=Inter+Tight:wght@300;400;500&family=Outfit:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#070809; --bg2:#0b0d10; --line:#1b1f24;
+    --ink:#eceef1; --muted:#7e848e; --faint:#454b54;
+    --green:#34d399; --green-d:#0f6e56; --red:#f2706f; --red-d:#7f2a2a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    padding:34px 38px 48px;
+  }
+  .head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:30px}
+  .head .mark{font-family:'Fraunces'; font-weight:400; font-size:19px; letter-spacing:.01em}
+  .head .mark b{font-weight:500}
+  .head .note{font-size:12.5px; color:var(--muted); letter-spacing:.02em}
+  .grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    max-width:1180px; margin:0 auto;
+  }
+  .screen{
+    position:relative; aspect-ratio:16/10; border:1px solid var(--line);
+    border-radius:14px; background:
+      radial-gradient(120% 90% at 50% 118%, rgba(52,211,153,.07), transparent 60%),
+      linear-gradient(180deg, var(--bg2), var(--bg));
+    overflow:hidden; display:flex; flex-direction:column;
+    opacity:0; transform:translateY(10px);
+    animation:rise .9s cubic-bezier(.16,.84,.3,1) forwards;
+    transition:border-color .5s ease, transform .5s cubic-bezier(.16,.84,.3,1);
+  }
+  .screen:nth-child(2){animation-delay:.08s}
+  .screen:nth-child(3){animation-delay:.16s}
+  .screen:nth-child(4){animation-delay:.24s}
+  .screen:hover{border-color:#2c333b; transform:translateY(-2px)}
+  @keyframes rise{to{opacity:1; transform:none}}
+  /* faint horizon to hint the P&L plane */
+  .screen::after{
+    content:""; position:absolute; left:0; right:0; bottom:30%; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(126,132,142,.18), transparent);
+  }
+  .brand{position:absolute; top:18px; left:20px; font-size:15px; letter-spacing:.01em; color:var(--ink)}
+  .brand .dot{color:var(--green)}
+  .center{margin:auto; text-align:center; padding:0 24px; z-index:1}
+  .prompt{font-size:13px; color:var(--muted); letter-spacing:.04em; margin-bottom:18px; font-weight:400}
+  .field{display:inline-flex; align-items:center; gap:2px; padding-bottom:9px; border-bottom:1px solid var(--faint)}
+  .ticker{font-size:44px; font-weight:400; letter-spacing:.01em; line-height:1}
+  .caret{width:2px; height:38px; background:var(--green); margin-left:4px; animation:blink 1.15s steps(1) infinite; border-radius:1px}
+  @keyframes blink{0%,55%{opacity:1}56%,100%{opacity:0}}
+  .sub{margin-top:20px; font-size:11.5px; color:var(--faint); letter-spacing:.06em}
+  .label{position:absolute; bottom:16px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center}
+  .label .name{font-size:12.5px; color:var(--ink); font-weight:500}
+  .label .fonts{font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; letter-spacing:.01em}
+  .pl{position:absolute; left:0; right:0; bottom:0; height:34%; opacity:.5}
+
+  /* ---- VARIANT 1: Editorial serif ---- */
+  .v-editorial .brand{font-family:'Fraunces'; font-weight:500}
+  .v-editorial .prompt{font-family:'Inter'; text-transform:none}
+  .v-editorial .ticker{font-family:'Fraunces'; font-weight:400; letter-spacing:.005em}
+  .v-editorial .sub{font-family:'Fraunces'; font-style:italic; font-size:12.5px; color:var(--muted)}
+
+  /* ---- VARIANT 2: Swiss grotesque ---- */
+  .v-swiss .brand{font-family:'Inter Tight'; font-weight:500; letter-spacing:-.01em}
+  .v-swiss .prompt{font-family:'Inter Tight'; text-transform:uppercase; letter-spacing:.18em; font-size:11px}
+  .v-swiss .ticker{font-family:'Inter Tight'; font-weight:500; letter-spacing:-.02em}
+  .v-swiss .sub{font-family:'Inter Tight'; letter-spacing:.14em; text-transform:uppercase}
+
+  /* ---- VARIANT 3: Geometric sans ---- */
+  .v-geo .brand{font-family:'Outfit'; font-weight:500}
+  .v-geo .prompt{font-family:'Outfit'}
+  .v-geo .ticker{font-family:'Outfit'; font-weight:400}
+  .v-geo .sub{font-family:'Outfit'}
+
+  /* ---- VARIANT 4: Mono-accented ---- */
+  .v-mono .brand{font-family:'Inter'; font-weight:500}
+  .v-mono .prompt{font-family:'Inter'}
+  .v-mono .ticker{font-family:'JetBrains Mono'; font-weight:500; letter-spacing:-.01em; font-size:40px}
+  .v-mono .sub{font-family:'JetBrains Mono'; font-size:11px}
+  .v-mono .brand .dot{}
+  .foot{max-width:1180px; margin:26px auto 0; font-size:12.5px; color:var(--muted); text-align:center; letter-spacing:.02em}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="mark">thesis<b>.</b></div>
+    <div class="note">typographic directions · dark canvas · pick one</div>
+  </div>
+
+  <div class="grid">
+    <!-- 1. Editorial -->
+    <div class="screen v-editorial">
+      <div class="brand">thesis<span class="dot">.</span></div>
+      <div class="center">
+        <div class="prompt">What's on your mind?</div>
+        <div class="field"><span class="ticker">NVDA</span><span class="caret"></span></div>
+        <div class="sub">name a ticker to begin</div>
+      </div>
+      <svg class="pl" viewBox="0 0 600 120" preserveAspectRatio="none">
+        <path d="M0,90 L240,90 L360,20 L600,20" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.8"/>
+        <path d="M0,90 L240,90 L300,118 L0,118 Z" fill="#f2706f" opacity="0.10"/>
+      </svg>
+      <div class="label"><span class="name">Editorial</span><span class="fonts">Fraunces · Inter</span></div>
+    </div>
+
+    <!-- 2. Swiss grotesque -->
+    <div class="screen v-swiss">
+      <div class="brand">thesis<span class="dot">.</span></div>
+      <div class="center">
+        <div class="prompt">Pick a ticker</div>
+        <div class="field"><span class="ticker">NVDA</span><span class="caret"></span></div>
+        <div class="sub">begin</div>
+      </div>
+      <svg class="pl" viewBox="0 0 600 120" preserveAspectRatio="none">
+        <path d="M0,90 L240,90 L360,20 L600,20" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.8"/>
+        <path d="M0,90 L240,90 L300,118 L0,118 Z" fill="#f2706f" opacity="0.10"/>
+      </svg>
+      <div class="label"><span class="name">Swiss grotesque</span><span class="fonts">Inter Tight</span></div>
+    </div>
+
+    <!-- 3. Geometric -->
+    <div class="screen v-geo">
+      <div class="brand">thesis<span class="dot">.</span></div>
+      <div class="center">
+        <div class="prompt">Start with a ticker</div>
+        <div class="field"><span class="ticker">NVDA</span><span class="caret"></span></div>
+        <div class="sub">name a stock to begin</div>
+      </div>
+      <svg class="pl" viewBox="0 0 600 120" preserveAspectRatio="none">
+        <path d="M0,90 L240,90 L360,20 L600,20" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.8"/>
+        <path d="M0,90 L240,90 L300,118 L0,118 Z" fill="#f2706f" opacity="0.10"/>
+      </svg>
+      <div class="label"><span class="name">Geometric sans</span><span class="fonts">Outfit</span></div>
+    </div>
+
+    <!-- 4. Mono-accented -->
+    <div class="screen v-mono">
+      <div class="brand">thesis<span class="dot">.</span></div>
+      <div class="center">
+        <div class="prompt">Enter a ticker</div>
+        <div class="field"><span class="ticker">NVDA</span><span class="caret"></span></div>
+        <div class="sub">$118.42 · begin</div>
+      </div>
+      <svg class="pl" viewBox="0 0 600 120" preserveAspectRatio="none">
+        <path d="M0,90 L240,90 L360,20 L600,20" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.8"/>
+        <path d="M0,90 L240,90 L300,118 L0,118 Z" fill="#f2706f" opacity="0.10"/>
+      </svg>
+      <div class="label"><span class="name">Mono-accented</span><span class="fonts">Inter · JetBrains Mono</span></div>
+    </div>
+  </div>
+
+  <div class="foot">Same screen, four type voices. The green line + red fill hint at the P&amp;L valley that fills the graph later.</div>
+</body>
+</html>

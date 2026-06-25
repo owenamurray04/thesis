@@ -1,0 +1,29 @@
+{
+  "name": "ose-frontend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "OSE client -- the graph-as-interface UI and the client-side scoring hot loop (D18)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vitest": "^2.0.0",
+    "eslint": "^9.7.0"
+  },
+  "comment": "Renderers (D3/visx for the 2D overlay, Three.js for the 3D terrain) and a no-overshoot motion util are added per build-plan slices 4 and 6 -- not pinned here yet so Claude Code can choose current versions."
+}
