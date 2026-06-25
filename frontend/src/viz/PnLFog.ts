@@ -8,10 +8,10 @@
 // profit/loss). This is the data-driven fog, NOT decorative chrome.
 
 import { interpAtPrice, type Timeline } from "./scene";
-import type { FogScales } from "./BeliefFog";
+import { paintSmoothField, type FogScales } from "./BeliefFog";
 
-const GREEN = "16, 185, 129"; // --g-3
-const RED = "229, 72, 77"; // --r-3
+const GREEN: [number, number, number] = [16, 185, 129]; // --g-3
+const RED: [number, number, number] = [229, 72, 77]; // --r-3
 const MAX_ALPHA = 0.5;
 
 /** Robust scale for |pnl|: a high percentile of the supplied magnitudes, floored to
@@ -47,40 +47,34 @@ export function drawPnLFog(
   const fanW = width - x0;
   if (fanW <= 0) return;
 
-  const rows = Math.min(160, Math.max(2, Math.round(height / 4)));
-  const cellH = height / rows;
-  const cols = Math.min(80, Math.max(2, Math.round(fanW / 8)));
-  const cellW = fanW / cols;
+  const rows = Math.min(140, Math.max(8, Math.round(height / 10)));
+  const cols = Math.min(96, Math.max(8, Math.round(fanW / 12)));
 
-  // First pass: sample the P&L at each visible price row, and scale to the visible
-  // window so both the bounded loss and the gain are legible in the belief's region.
+  // Sample the P&L at each visible price row, scaling to the visible window so both
+  // the bounded loss and the gain are legible in the belief's region.
   const rowVal: number[] = new Array(rows);
   const absVisible: number[] = [];
   for (let r = 0; r < rows; r++) {
-    const price = scales.priceOfY((r + 0.5) * cellH);
+    const price = scales.priceOfY((r + 0.5) * (height / rows));
     const v = interpAtPrice(grid, pnl, price);
     rowVal[r] = v;
     if (v !== 0) absVisible.push(Math.abs(v));
   }
   const scale = robustPnlScale(absVisible);
 
-  for (let r = 0; r < rows; r++) {
+  // Smooth upscale (shared with the belief fog): green where the trade profits, red
+  // where it loses; alpha rises with sqrt(|pnl|) and with proximity to expiration.
+  paintSmoothField(ctx, x0, 0, fanW, height, cols, rows, (c, r) => {
     const v = rowVal[r];
-    if (v === 0) continue;
-    // sqrt compression: small |v| still register against a large gain in-window
+    if (v === 0) return null;
     const base = Math.min(1, Math.sqrt(Math.abs(v) / scale));
-    if (base < 0.05) continue;
+    if (base < 0.05) return null;
+    const px = x0 + (c + 0.5) * (fanW / cols);
+    const t = expX > x0 ? Math.min(1, (px - x0) / (expX - x0)) : 1;
+    const depth = 0.4 + 0.6 * t;
+    const a = Math.round(255 * MAX_ALPHA * base * depth);
+    if (a < 3) return null;
     const rgb = v > 0 ? GREEN : RED;
-
-    for (let c = 0; c < cols; c++) {
-      const px = x0 + c * cellW;
-      // depth ramp: dim near Now, full at the expiration column and beyond
-      const t = expX > x0 ? Math.min(1, (px + cellW * 0.5 - x0) / (expX - x0)) : 1;
-      const depth = 0.35 + 0.65 * t;
-      const a = MAX_ALPHA * base * depth;
-      if (a < 0.01) continue;
-      ctx.fillStyle = `rgba(${rgb}, ${a.toFixed(3)})`;
-      ctx.fillRect(px, r * cellH, cellW + 1, cellH + 1);
-    }
-  }
+    return [rgb[0], rgb[1], rgb[2], a];
+  });
 }

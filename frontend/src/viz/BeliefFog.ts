@@ -19,12 +19,56 @@ export interface FogScales {
   height: number;
 }
 
-const GREEN = "16, 185, 129"; // --g-3 rgb, the deepest fog green
+const GREEN: [number, number, number] = [16, 185, 129]; // --g-3, the deepest fog green
 const MAX_ALPHA = 0.55;
 
-/** Paint the belief cloud into `ctx`. Coarse cell grid (<= 80x120) over the future
- *  region; alpha rises with normalized fan density so the cloud is densest at the
- *  prediction and fans out from Now to the right edge. */
+/** Paint a low-resolution (cols x rows) field smoothly into a destination rect. The
+ *  field is rendered into a tiny offscreen canvas (one texel per cell) and drawn back
+ *  scaled up with bilinear smoothing -- the browser's interpolation turns the coarse
+ *  cells into soft, blur-free fog. `rgba(c, r)` returns the cell's [r,g,b,0..255a] or
+ *  null for empty. This is the soft-falloff workhorse both fogs share (design doc
+ *  12.1: shades within the data viz are allowed; this is NOT decorative chrome). */
+export function paintSmoothField(
+  ctx: CanvasRenderingContext2D,
+  destX: number,
+  destY: number,
+  destW: number,
+  destH: number,
+  cols: number,
+  rows: number,
+  rgba: (c: number, r: number) => [number, number, number, number] | null,
+): void {
+  if (cols < 1 || rows < 1 || destW <= 0 || destH <= 0) return;
+  const off = document.createElement("canvas");
+  off.width = cols;
+  off.height = rows;
+  const octx = off.getContext("2d");
+  if (!octx) return;
+  const img = octx.createImageData(cols, rows);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = (r * cols + c) * 4;
+      const v = rgba(c, r);
+      if (!v) {
+        img.data[i + 3] = 0;
+        continue;
+      }
+      img.data[i] = v[0];
+      img.data[i + 1] = v[1];
+      img.data[i + 2] = v[2];
+      img.data[i + 3] = v[3];
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  const prev = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(off, 0, 0, cols, rows, destX, destY, destW, destH);
+  ctx.imageSmoothingEnabled = prev;
+}
+
+/** Paint the belief cloud into `ctx`: sample the fan over a coarse grid in the future
+ *  region (Now -> right edge), normalize by the field max, and upscale smoothly so the
+ *  cloud reads as a soft blob, densest at the prediction and fanning out from Now. */
 export function drawBeliefFog(
   ctx: CanvasRenderingContext2D,
   belief: BeliefParams,
@@ -40,23 +84,20 @@ export function drawBeliefFog(
   const fanW = width - x0;
   if (fanW <= 0) return;
 
-  // coarse sampling grid
-  const cols = Math.min(80, Math.max(2, Math.round(fanW / 8)));
-  const rows = Math.min(120, Math.max(2, Math.round(height / 6)));
-  const cellW = fanW / cols;
-  const cellH = height / rows;
+  // coarse sampling grid -- kept low so the bilinear upscale blurs it into fog
+  const cols = Math.min(96, Math.max(8, Math.round(fanW / 12)));
+  const rows = Math.min(140, Math.max(8, Math.round(height / 10)));
 
   const fan = beliefFan(belief, spot);
 
-  // first pass: density field + max for normalization
   const field = new Float64Array(cols * rows);
   let maxD = 0;
   for (let c = 0; c < cols; c++) {
-    const px = x0 + (c + 0.5) * cellW;
+    const px = x0 + (c + 0.5) * (fanW / cols);
     const ms = msOfX(px, scales, tl);
     const u = nowToExp(ms, tl);
     for (let r = 0; r < rows; r++) {
-      const py = (r + 0.5) * cellH;
+      const py = (r + 0.5) * (height / rows);
       const price = scales.priceOfY(py);
       const d = fan(price, u);
       field[c * rows + r] = d;
@@ -65,18 +106,12 @@ export function drawBeliefFog(
   }
   if (maxD <= 0) return;
 
-  // second pass: paint. Soft edges come from the coarse cells + a touch of overlap.
-  for (let c = 0; c < cols; c++) {
-    const px = x0 + c * cellW;
-    for (let r = 0; r < rows; r++) {
-      const norm = field[c * rows + r] / maxD;
-      if (norm < 0.012) continue;
-      const a = MAX_ALPHA * Math.pow(norm, 0.75);
-      ctx.fillStyle = `rgba(${GREEN}, ${a.toFixed(3)})`;
-      // +1 overlap removes seams between cells (cheap softening)
-      ctx.fillRect(px, r * cellH, cellW + 1, cellH + 1);
-    }
-  }
+  paintSmoothField(ctx, x0, 0, fanW, height, cols, rows, (c, r) => {
+    const norm = field[c * rows + r] / maxD;
+    if (norm < 0.01) return null;
+    const a = Math.round(255 * MAX_ALPHA * Math.pow(norm, 0.8));
+    return [GREEN[0], GREEN[1], GREEN[2], a];
+  });
 }
 
 /** Inverse of an affine timeFrac mapping: px x -> timestamp. */
