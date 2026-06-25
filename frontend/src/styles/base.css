@@ -1,0 +1,52 @@
+/* Base / reset -- design doc 12. Restraint: no gradients, glows, drop-shadows,
+   or rounded-card soup. Weights are limited to 300/400/500. Sentence case. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+}
+
+.eyebrow {
+  font: 500 11px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

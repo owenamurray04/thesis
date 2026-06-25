@@ -1,0 +1,73 @@
+/* Design tokens -- design doc 12.1. Dark is the default; [data-theme="light"]
+   mirrors with identical token NAMES so components never branch on theme. */
+
+:root {
+  /* Neutrals */
+  --canvas: #070809;
+  --surface-1: #0c0e11;
+  --surface-2: #131619;
+  --line: #1b1f24;
+  --line-strong: #2c333b;
+  --text-1: #eceef1;
+  --text-2: #9aa0a8;
+  --text-3: #6b7079;
+  --text-faint: #454b54;
+
+  /* P&L green */
+  --g-1: #6ee7b7;
+  --g-2: #34d399;
+  --g-3: #10b981;
+  --g-fill: #0f2e26;
+  --g-edge: #065f46;
+
+  /* P&L red */
+  --r-1: #fca5a5;
+  --r-2: #f2706f;
+  --r-3: #e5484d;
+  --r-fill: #2e1718;
+  --r-edge: #7f2a2a;
+
+  /* Accent (single accent only -- anti-brief) */
+  --accent: #7dd3fc;
+  --accent-dim: #38506a;
+
+  /* Motion */
+  --ease-settle: cubic-bezier(0.16, 0.84, 0.3, 1);
+  --ease-morph: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-standard: 300ms;
+  --dur-state: 700ms;
+
+  /* Type */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+[data-theme="light"] {
+  --canvas: #fbfbf9;
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f1;
+  --line: #e6e6e1;
+  --line-strong: #d2d2cc;
+  --text-1: #16181b;
+  --text-2: #5a5f66;
+  --text-3: #6b7079;
+  --text-faint: #b0b3b8;
+
+  /* Green ink reads darker on light paper */
+  --g-1: #34d399;
+  --g-2: #0f7a5a;
+  --g-3: #0b6249;
+  --g-fill: #dff3ea;
+  --g-edge: #0f7a5a;
+
+  /* Red ink */
+  --r-1: #f2706f;
+  --r-2: #c23b3b;
+  --r-3: #a52f2f;
+  --r-fill: #f7e1e1;
+  --r-edge: #c23b3b;
+
+  --accent: #2f6f9e;
+  --accent-dim: #a9c4d8;
+}
