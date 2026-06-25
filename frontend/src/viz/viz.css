@@ -1,0 +1,11 @@
+/* Viz-layer keyframes (design doc 12 motion). Decelerate only -- no bounce or
+   overshoot. The cross-fade is the reduced-motion fallback for the PnL morph. */
+
+@keyframes viz-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

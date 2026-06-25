@@ -1,0 +1,250 @@
+/* App shell layout + staged-state choreography (design doc 12.3 / 12.4 / 8.1).
+   The graph is the full-bleed substrate; all chrome floats over it as "ink on
+   glass" -- translucent --surface-1, hairlines, backdrop-blur. Never boxed panels.
+   Motion uses the tokens; prefers-reduced-motion collapses to a fast cross-fade. */
+
+/* --- full-viewport stage ---------------------------------------------------- */
+.app-stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+/* the canvas substrate fills the stage absolutely; chrome layers above it */
+.app-canvas-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.app-chrome {
+  position: absolute;
+  z-index: 2;
+}
+
+/* top-left dimmed wordmark in the staged views */
+.app-wordmark {
+  top: 20px;
+  left: 24px;
+}
+
+/* unobtrusive live expiration label */
+.app-exp {
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* a quiet confirm affordance, bottom-center */
+.app-confirm {
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-3);
+  font-size: 12px;
+  user-select: none;
+}
+
+.app-confirm kbd {
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* one-time "drag to predict" hint, fades after first interaction */
+.app-hint {
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-faint);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  transition: opacity var(--dur-standard) var(--ease-settle);
+}
+.app-hint[data-faded="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* top-right cluster of quiet toggles (design doc 12.6) */
+.app-toggles {
+  top: 20px;
+  right: 24px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.app-toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  font: 500 11px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  transition: color var(--dur-micro) var(--ease-settle);
+}
+.app-toggle:hover {
+  color: var(--text-2);
+}
+.app-toggle[data-active="true"] {
+  color: var(--accent);
+}
+
+/* --- docked rail ------------------------------------------------------------ */
+.app-rail {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
+  border-left: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* slide-in from the right (design doc 12.4 reveal) */
+.app-rail--enter {
+  transform: translateX(100%);
+}
+.app-rail--shown {
+  transform: translateX(0);
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+/* --- landing ---------------------------------------------------------------- */
+.app-landing {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: var(--canvas);
+}
+
+.app-landing-mark {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+}
+
+.app-landing-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.app-landing-eyebrow {
+  color: var(--text-3);
+}
+
+/* underline-only mono ticker field -- no box, no button */
+.app-ticker {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line-strong);
+  outline: none;
+  caret-color: var(--accent);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  width: 6ch;
+  padding: 4px 0 8px;
+  transition: border-color var(--dur-standard) var(--ease-settle);
+}
+.app-ticker:focus {
+  border-bottom-color: var(--accent);
+}
+.app-ticker::placeholder {
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+/* faint horizon hairline behind the landing field */
+.app-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38%;
+  height: 1px;
+  background: var(--line);
+  opacity: 0.6;
+}
+
+.app-loading {
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* --- staged reveal: fade + 8px rise, staggered (design doc 12.3) ------------ */
+@keyframes app-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-enter {
+  animation: app-rise var(--dur-state) var(--ease-settle) both;
+}
+/* 40-60ms stagger across the choreographed elements */
+.app-enter--1 {
+  animation-delay: 40ms;
+}
+.app-enter--2 {
+  animation-delay: 100ms;
+}
+.app-enter--3 {
+  animation-delay: 160ms;
+}
+.app-enter--4 {
+  animation-delay: 220ms;
+}
+
+/* reduced motion: collapse choreography to a <=120ms cross-fade */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes app-rise {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .app-enter,
+  .app-enter--1,
+  .app-enter--2,
+  .app-enter--3,
+  .app-enter--4 {
+    animation-duration: 120ms !important;
+    animation-delay: 0ms !important;
+  }
+  .app-rail--shown {
+    transition-duration: 120ms !important;
+  }
+}
