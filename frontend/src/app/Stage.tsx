@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { HistoryBar, ScoringBundle } from "../types/contracts";
 import { useEngine } from "../state/useEngine";
 import { loadHistory } from "../data/loadBundle";
-import { PredictionCanvas } from "../viz/PredictionCanvas";
+import { Scene } from "../viz/SceneView";
 import { BottomRail } from "../rail/BottomRail";
 import { usePrefersReducedMotion } from "../viz/usePrefersReducedMotion";
 import Wordmark from "../ui/Wordmark";
@@ -128,7 +128,7 @@ export function StageView({
       {/* sticky full-viewport graph screen */}
       <div className="app-screen">
         <div className="app-canvas-layer">
-          <PredictionCanvas
+          <Scene
             grid={engine.grid}
             belief={engine.belief}
             setBelief={handleSetBelief}

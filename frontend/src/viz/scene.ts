@@ -113,6 +113,73 @@ export function priceDomain(
   return [Math.max(0, lo - pad), hi + pad];
 }
 
+// ---- the prediction blob (a circularish cloud in price x time) -------------
+//
+// The user sculpts a single smooth blob. Its PRICE distribution is the engine's
+// two-piece lognormal (m, sigma_down, sigma_up) -- so the terminal slice the engine
+// scores is unchanged (D5). Its TIME spread is purely representational (one
+// expiration in this slice): it only rounds the blob out so it reads as a cloud, not
+// a thin vertical sliver. The blob is centered at the expiration column in time.
+
+/** Time spread (sigma, in ms) of the blob -- a fraction of the now->expiration span,
+ *  so the cloud stays circularish across tickers. */
+export const BLOB_TIME_FRAC = 0.34;
+
+export function blobTimeSigmaMs(tl: Timeline): number {
+  return Math.max(1, (tl.expMs - tl.nowMs) * BLOB_TIME_FRAC);
+}
+
+/** Separable 2D belief density at (price, timestamp): the two-piece lognormal in
+ *  price times a gaussian in time centered at expiration. UN-normalized (callers
+ *  scale by the field max for fog opacity / surface height). */
+export function belief2DDensity(
+  belief: BeliefParams,
+  price: number,
+  ms: number,
+  tl: Timeline,
+): number {
+  if (price <= 0) return 0;
+  const b = clampBelief(belief);
+  const p = twoPieceLognormalPdf([price], b.m, b.sigma_down, b.sigma_up)[0];
+  const ts = blobTimeSigmaMs(tl);
+  const dt = ms - tl.expMs;
+  const tk = Math.exp(-(dt * dt) / (2 * ts * ts));
+  return p * tk;
+}
+
+/** The blob's center and its 68% / 95% extents, for drawing the egg-shaped iso-
+ *  probability rings and for hit-testing the reshape grab zones. Price extents are
+ *  asymmetric (two-piece -> egg, not circle): top = m*exp(k*sigma_up), bottom =
+ *  m*exp(-k*sigma_down). Time extents are +/- k*timeSigma about expiration. */
+export interface BlobExtents {
+  centerPrice: number; // m
+  centerMs: number; // expiration column
+  rings: {
+    k: number; // 1 = 68%, 2 = 95%
+    top: number; // price at +k sigma_up
+    bottom: number; // price at -k sigma_down
+    leftMs: number; // expMs - k*timeSigma
+    rightMs: number; // expMs + k*timeSigma
+  }[];
+}
+
+export function beliefBlobExtents(belief: BeliefParams, tl: Timeline): BlobExtents {
+  const b = clampBelief(belief);
+  const ts = blobTimeSigmaMs(tl);
+  const ring = (k: number) => ({
+    k,
+    top: b.m * Math.exp(k * b.sigma_up),
+    bottom: b.m * Math.exp(-k * b.sigma_down),
+    leftMs: tl.expMs - k * ts,
+    rightMs: tl.expMs + k * ts,
+  });
+  return {
+    centerPrice: b.m,
+    centerMs: tl.expMs,
+    rings: [ring(1), ring(2)],
+  };
+}
+
 /** Linear-interpolate a per-grid value (e.g. a candidate's dollar P&L) at an
  *  arbitrary price. Grid is ascending. Clamps to the ends. */
 export function interpAtPrice(
