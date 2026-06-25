@@ -3,16 +3,41 @@
    glass" -- translucent --surface-1, hairlines, backdrop-blur. Never boxed panels.
    Motion uses the tokens; prefers-reduced-motion collapses to a fast cross-fade. */
 
-/* --- full-viewport stage ---------------------------------------------------- */
-.app-stage {
+/* --- full-viewport stage + scroll-reveal ------------------------------------ */
+/* The scroll container: the graph reads as the whole screen (a sticky 100vh
+   "screen"), and scrolling down a little reveals the bottom strategy panel. The
+   scroll position is mapped to a 0..1 --reveal variable by Stage; the panel lifts
+   and fades in while the graph dims + scales down slightly (design doc 12.4). */
+.app-scroll {
   position: relative;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden; /* graph-only until the rail becomes reachable */
   background: var(--canvas);
+  scroll-behavior: smooth;
+}
+.app-scroll.is-reachable {
+  overflow-y: auto;
 }
 
-/* the canvas substrate fills the stage absolutely; chrome layers above it */
+/* the sticky full-viewport graph screen; chrome floats over it */
+.app-screen {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 0;
+  /* graph recedes a touch as the panel rises (clamped so it never disappears) */
+  transform: scale(calc(1 - 0.03 * var(--reveal, 0)));
+  transform-origin: 50% 38%;
+  opacity: calc(1 - 0.18 * var(--reveal, 0));
+  transition: transform var(--dur-micro) var(--ease-settle),
+    opacity var(--dur-micro) var(--ease-settle);
+  will-change: transform, opacity;
+}
+
+/* the canvas substrate fills the screen absolutely; chrome layers above it */
 .app-canvas-layer {
   position: absolute;
   inset: 0;
@@ -101,27 +126,60 @@
   color: var(--accent);
 }
 
-/* --- docked rail ------------------------------------------------------------ */
-.app-rail {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 340px;
+/* --- scroll-reveal bottom strategy panel ------------------------------------ */
+/* A spacer below the sticky graph that supplies the scroll distance; scrolling
+   through it lifts the fixed panel into view. ~60vh of travel == "scroll down a
+   little" (design doc 12.4). */
+.app-bottomrail-scroll {
+  position: relative;
+  height: 64vh;
   z-index: 1;
-  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
-  border-left: 1px solid var(--line);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 
-/* slide-in from the right (design doc 12.4 reveal) */
-.app-rail--enter {
-  transform: translateX(100%);
+/* the panel itself is pinned to the bottom of the viewport and driven by --reveal:
+   it slides up (translateY) and fades in as the user scrolls. */
+.app-bottomrail {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  transform: translateY(calc((1 - var(--reveal, 0)) * 100%));
+  opacity: var(--reveal, 0);
+  transition: transform var(--dur-micro) var(--ease-settle),
+    opacity var(--dur-micro) var(--ease-settle);
+  will-change: transform, opacity;
 }
-.app-rail--shown {
-  transform: translateX(0);
-  transition: transform var(--dur-state) var(--ease-settle);
+
+/* a quiet "scroll for strategies" hint that fades once the user scrolls */
+.app-scroll-hint {
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--dur-standard) var(--ease-settle);
+}
+.app-scroll-hint[data-faded="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.app-scroll-hint-arrow {
+  font-family: var(--font-mono);
+  animation: app-nudge 1.8s var(--ease-settle) infinite;
+}
+@keyframes app-nudge {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
 }
 
 /* --- landing ---------------------------------------------------------------- */
@@ -244,7 +302,15 @@
     animation-duration: 120ms !important;
     animation-delay: 0ms !important;
   }
-  .app-rail--shown {
-    transition-duration: 120ms !important;
+  /* No graph recede + no transform travel; the panel cross-fades on scroll. */
+  .app-screen {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .app-bottomrail {
+    transform: none !important;
+  }
+  .app-scroll-hint-arrow {
+    animation: none !important;
   }
 }

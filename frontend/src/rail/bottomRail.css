@@ -1,0 +1,194 @@
+/* Bottom strategy panel -- design doc 8.4 / 12.5. A horizontal translucent bar
+   docked to the bottom of the graph. Reuses the shared atoms from rail.css
+   (.sortbar, .tier-badge, .row-headline*, .row-stat-label, .tune*, .sparkline)
+   and lays them out horizontally. Hairlines not boxes; color is reserved for P&L
+   (the sparkline) -- everything else is greyscale neutrals + the single accent. */
+
+.brail {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: color-mix(in srgb, var(--surface-1) 80%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+}
+
+/* --- top bar: eyebrow + sort + tune ---------------------------------------- */
+.brail-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.brail-eyebrow {
+  text-transform: none; /* sentence-case eyebrow (design doc 12) */
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+/* the sort bar lives inline here -- strip its rail border + vertical padding */
+.brail-bar .sortbar {
+  padding: 0;
+  border-bottom: none;
+}
+.brail-bar-spacer {
+  flex: 1 1 auto;
+}
+
+/* tune trigger sits inline at the right; its sheet pops UPWARD as an overlay so
+   it never opens below the viewport edge (the panel is bottom-docked). */
+.brail-bar .tune {
+  border-top: none;
+  position: relative;
+}
+.brail-bar .tune-trigger {
+  width: auto;
+  padding: 4px 0;
+}
+.brail-bar .tune-sheet {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: 260px;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  z-index: 4;
+}
+.brail-bar .tune-sheet.is-closed {
+  /* collapse the popover entirely when closed (no stray hairline) */
+  border-color: transparent;
+}
+.brail-bar .tune-sheet-inner {
+  padding: 16px 16px 18px;
+}
+
+/* --- card track ------------------------------------------------------------ */
+.brail-track-wrap {
+  display: flex;
+  align-items: stretch;
+  height: 160px;
+  overflow: hidden;
+}
+
+/* horizontally-scrollable ranked cards */
+.brail-track {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+/* pinned benchmark, held at the left and visually separated (D11) */
+.brail-benchmark {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-2) 30%, transparent);
+}
+.benchmark-tag {
+  font: 500 9px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-3);
+  padding: 8px 16px 0;
+}
+
+/* --- one card -------------------------------------------------------------- */
+.scard {
+  position: relative;
+  flex: 0 0 232px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 16px;
+  border: none;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background var(--dur-micro) var(--ease-settle),
+    opacity var(--dur-standard) var(--ease-settle);
+  will-change: transform;
+}
+.scard:hover {
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+.scard.is-selected {
+  background: var(--surface-2);
+  opacity: 1 !important; /* selection overrides the faded tail */
+}
+.scard.is-benchmark {
+  flex-basis: 220px;
+  border-right: none;
+}
+
+.scard-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.scard-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-1);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scard-summary {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+  line-height: 1.35;
+  /* two-line clamp -- the summary is a full sentence */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.scard-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: auto; /* push headline + foot to the bottom of the card */
+}
+.scard-headline .row-headline-cap {
+  text-align: left;
+  margin-bottom: 0;
+}
+.scard-headline .row-headline {
+  font-size: 19px;
+}
+
+.scard-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+.scard-stats {
+  font-size: 11px;
+  color: var(--text-2);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.scard-stats .row-stat-label {
+  display: inline-block;
+  min-width: 26px;
+}

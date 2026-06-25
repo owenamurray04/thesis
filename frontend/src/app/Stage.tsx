@@ -2,15 +2,19 @@
 // (useEngine) so the engine hook always runs with a real bundle -- App handles
 // landing/loading above it, keeping every hook call unconditional.
 //
-// The graph is the full-bleed substrate; chrome floats over it as ink on glass.
-// Stage drives the predict -> reveal -> browse choreography for the bundle that
-// App has loaded; `onConfirm` is what App wires to advance out of `predict`.
+// The price x time graph is the full-viewport substrate (sticky, 100vh). Chrome
+// floats over it as ink on glass. Scrolling down "a little" reveals the ranked
+// BottomRail strategy panel, which slides/fades up from beneath the graph while
+// the graph dims and scales down slightly. The scroll position drives selection
+// context; clicking a card drives the canvas selection (the belief seam, D5).
 
-import { useEffect, useState } from "react";
-import type { ScoringBundle } from "../types/contracts";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { HistoryBar, ScoringBundle } from "../types/contracts";
 import { useEngine } from "../state/useEngine";
-import { BeliefCanvas } from "../viz/BeliefCanvas";
-import { Rail } from "../rail/Rail";
+import { loadHistory } from "../data/loadBundle";
+import { PredictionCanvas } from "../viz/PredictionCanvas";
+import { BottomRail } from "../rail/BottomRail";
+import { usePrefersReducedMotion } from "../viz/usePrefersReducedMotion";
 import Wordmark from "../ui/Wordmark";
 import Num from "../ui/Num";
 import Toggles from "./Toggles";
@@ -49,8 +53,25 @@ export function StageView({
 }: StageProps) {
   const engine = useEngine(bundle);
   const [hintFaded, setHintFaded] = useState(false);
+  const [history, setHistory] = useState<HistoryBar[]>([]);
 
-  const railShown = stage === "reveal" || stage === "browse";
+  // scroll-reveal: 0 = graph only, 1 = panel fully risen (design doc 12.4).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [reveal, setReveal] = useState(0);
+  const reduced = usePrefersReducedMotion();
+
+  const railReachable = stage === "reveal" || stage === "browse";
+
+  // Load the price history once per bundle and thread it to the canvas (8.5).
+  useEffect(() => {
+    let alive = true;
+    loadHistory(bundle.meta.symbol).then((bars) => {
+      if (alive) setHistory(bars);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [bundle.meta.symbol]);
 
   // Predict: Enter is the quiet confirm affordance (design doc 12.4).
   useEffect(() => {
@@ -62,94 +83,136 @@ export function StageView({
     return () => window.removeEventListener("keydown", onKey);
   }, [stage, onConfirm]);
 
+  // Map scroll position to a 0..1 reveal progress. The panel becomes reachable
+  // only from `reveal` onward; before that the page is pinned to the top so the
+  // graph reads as the whole screen (design doc 12.4).
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollHeight - el.clientHeight;
+    const p = max > 0 ? Math.min(1, el.scrollTop / max) : 0;
+    setReveal(p);
+  }, []);
+
+  // When the rail is not yet reachable, hold the scroll container at the top.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (!railReachable) {
+      el.scrollTop = 0;
+      setReveal(0);
+    }
+  }, [railReachable]);
+
   // The belief seam (D5): the canvas writes belief via setBelief; first write
   // fades the one-time "drag to predict" hint.
-  const handleSetBelief = (b: typeof engine.belief) => {
-    if (!hintFaded) setHintFaded(true);
-    engine.setBelief(b);
-  };
+  const handleSetBelief = useCallback(
+    (b: typeof engine.belief) => {
+      setHintFaded(true);
+      engine.setBelief(b);
+    },
+    [engine],
+  );
+
+  // The hint fades once the user scrolls into the reveal (design doc 12.4).
+  const scrollHintFaded = reveal > 0.04;
 
   return (
-    <div className="app-stage">
-      {/* full-bleed canvas substrate */}
-      <div className="app-canvas-layer">
-        <BeliefCanvas
-          grid={engine.grid}
-          f={engine.f}
-          selected={engine.selected}
-          belief={engine.belief}
-          setBelief={handleSetBelief}
-          seed={engine.seed}
-          meta={bundle.meta}
-          marketQ={bundle.market_q}
+    <div
+      ref={scrollRef}
+      className={"app-scroll" + (railReachable ? " is-reachable" : "")}
+      onScroll={onScroll}
+      data-reduced={reduced}
+      style={{ ["--reveal" as string]: reveal }}
+    >
+      {/* sticky full-viewport graph screen */}
+      <div className="app-screen">
+        <div className="app-canvas-layer">
+          <PredictionCanvas
+            grid={engine.grid}
+            belief={engine.belief}
+            setBelief={handleSetBelief}
+            seed={engine.seed}
+            selected={engine.selected}
+            meta={bundle.meta}
+            history={history}
+            mode={mode}
+            stage={stage}
+          />
+        </div>
+
+        {/* floating chrome: dimmed wordmark, live expiration, toggles */}
+        <div className="app-chrome app-wordmark app-enter app-enter--1">
+          <Wordmark dim />
+        </div>
+
+        <div className="app-chrome app-exp app-enter app-enter--2">
+          Exp <Num>{formatExp(bundle.meta.expiration)}</Num>
+        </div>
+
+        <Toggles
           mode={mode}
-          stage={stage}
+          setMode={setMode}
           showGhost={showGhost}
+          setShowGhost={setShowGhost}
+          theme={theme}
+          setTheme={setTheme}
         />
-      </div>
 
-      {/* floating chrome: dimmed wordmark, live expiration, toggles */}
-      <div className="app-chrome app-wordmark app-enter app-enter--1">
-        <Wordmark dim />
-      </div>
+        {/* predict-only affordances */}
+        {stage === "predict" && (
+          <>
+            <div
+              className="app-chrome app-hint"
+              data-faded={hintFaded}
+              aria-hidden="true"
+            >
+              drag to predict
+            </div>
+            <button
+              type="button"
+              className="app-chrome app-confirm app-toggle app-enter app-enter--4"
+              onClick={onConfirm}
+            >
+              <kbd>↵</kbd> see strategies
+            </button>
+          </>
+        )}
 
-      <div className="app-chrome app-exp app-enter app-enter--2">
-        Exp <Num>{formatExp(bundle.meta.expiration)}</Num>
-      </div>
-
-      <Toggles
-        mode={mode}
-        setMode={setMode}
-        showGhost={showGhost}
-        setShowGhost={setShowGhost}
-        theme={theme}
-        setTheme={setTheme}
-      />
-
-      {/* predict-only affordances */}
-      {stage === "predict" && (
-        <>
+        {/* quiet "scroll for strategies" hint, appears at reveal, fades on scroll */}
+        {railReachable && (
           <div
-            className="app-chrome app-hint"
-            data-faded={hintFaded}
+            className="app-chrome app-scroll-hint"
+            data-faded={scrollHintFaded}
             aria-hidden="true"
           >
-            drag to predict
+            scroll for strategies <span className="app-scroll-hint-arrow">↓</span>
           </div>
-          <button
-            type="button"
-            className="app-chrome app-confirm app-toggle app-enter app-enter--4"
-            onClick={onConfirm}
-          >
-            <kbd>↵</kbd> see strategies
-          </button>
-        </>
-      )}
-
-      {/* docked rail (states >= reveal): slides in from the right */}
-      <div
-        className={
-          "app-rail " + (railShown ? "app-rail--shown" : "app-rail--enter")
-        }
-        aria-hidden={!railShown}
-      >
-        {railShown && (
-          <Rail
-            ranked={engine.ranked}
-            benchmark={engine.benchmark}
-            selectedId={engine.selectedId}
-            setSelectedId={engine.setSelectedId}
-            sortKey={engine.sortKey}
-            setSortKey={engine.setSortKey}
-            symbol={bundle.meta.symbol}
-            expiration={bundle.meta.expiration}
-            riskAppetite={engine.riskAppetite}
-            setRiskAppetite={engine.setRiskAppetite}
-            weights={engine.weights}
-            setWeights={engine.setWeights}
-          />
         )}
       </div>
+
+      {/* scroll-reveal bottom strategy panel (states >= reveal). It sits below the
+          sticky graph; the scroll-driven --reveal lifts + fades it into view. */}
+      {railReachable && (
+        <div className="app-bottomrail-scroll" aria-hidden={reveal < 0.02}>
+          <div className="app-bottomrail">
+            <BottomRail
+              ranked={engine.ranked}
+              benchmark={engine.benchmark}
+              selectedId={engine.selectedId}
+              setSelectedId={engine.setSelectedId}
+              sortKey={engine.sortKey}
+              setSortKey={engine.setSortKey}
+              symbol={bundle.meta.symbol}
+              expiration={bundle.meta.expiration}
+              riskAppetite={engine.riskAppetite}
+              setRiskAppetite={engine.setRiskAppetite}
+              weights={engine.weights}
+              setWeights={engine.setWeights}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

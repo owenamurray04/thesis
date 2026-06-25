@@ -1,7 +1,9 @@
-// One result row (design doc 8.4 / 12.5). Name + plain-english summary in Inter,
-// the active sort's headline metric as a prominent mono number, a secondary mono
-// stat line, a payoff sparkline (the only colored element), and a muted neutral
-// capital-tier badge. Color means P&L only -- the rest is greyscale + accent.
+// One strategy CARD in the bottom panel (design doc 8.4 / 12.5, restructured from
+// the right-rail Row into a horizontal-panel card). Name + plain-english summary
+// in Inter, the active sort's headline metric as a prominent mono number, a
+// secondary mono stat line, a payoff sparkline (the only colored element), and a
+// muted neutral capital-tier badge. Color means P&L only -- the rest is greyscale
+// + the single accent.
 
 import type { ScoredRow, SortKey } from "../core/scoring";
 import type { CapitalTier } from "../types/contracts";
@@ -10,14 +12,14 @@ import { Sparkline } from "./Sparkline";
 import { plainEnglish } from "../lib/summary";
 import { usd, signedUsd, price, pct } from "../lib/format";
 
-export interface RowProps {
+export interface CardProps {
   row: ScoredRow;
   sortKey: SortKey;
   selected: boolean;
   onSelect: () => void;
   symbol: string;
   expiration: string;
-  opacity?: number;
+  opacity?: number; // horizontal faded tail (D16): recede to the right
   benchmark?: boolean;
 }
 
@@ -35,7 +37,7 @@ const HEADLINE_CAP: Record<SortKey, string> = {
   edge: "edge",
 };
 
-/** The active sort's headline metric (design doc 8.4). Mono, right-aligned. */
+/** The active sort's headline metric (design doc 8.4). Mono. */
 function headline(row: ScoredRow, key: SortKey): string {
   const c = row.candidate;
   switch (key) {
@@ -46,7 +48,6 @@ function headline(row: ScoredRow, key: SortKey): string {
     case "return":
       return pct(row.roi, { sign: true }); // ROI, can be large
     case "risk": {
-      // reward:risk ratio, e.g. 2.4x
       const r2r =
         c.max_loss !== 0 ? c.max_gain / Math.abs(c.max_loss) : Infinity;
       return isFinite(r2r) ? `${r2r.toFixed(1)}×` : "∞";
@@ -56,7 +57,7 @@ function headline(row: ScoredRow, key: SortKey): string {
   }
 }
 
-export function Row({
+export function Card({
   row,
   sortKey,
   selected,
@@ -65,7 +66,7 @@ export function Row({
   expiration,
   opacity = 1,
   benchmark = false,
-}: RowProps): JSX.Element {
+}: CardProps): JSX.Element {
   const c = row.candidate;
   const summary = plainEnglish(c, symbol, expiration);
   const bes =
@@ -74,16 +75,30 @@ export function Row({
   return (
     <button
       type="button"
-      className={"row" + (selected ? " is-selected" : "")}
+      className={
+        "scard" +
+        (selected ? " is-selected" : "") +
+        (benchmark ? " is-benchmark" : "")
+      }
       style={{ opacity }}
       onClick={onSelect}
       aria-pressed={selected}
       data-flip-key={benchmark ? undefined : String(c.id)}
     >
-      <div className="row-main">
-        <span className="row-name">{c.name}</span>
-        <span className="row-summary">{summary}</span>
-        <div className="row-stats">
+      <div className="scard-head">
+        <span className="scard-name">{c.name}</span>
+        <span className="tier-badge">{TIER_LABEL[c.capital_tier]}</span>
+      </div>
+
+      <span className="scard-summary">{summary}</span>
+
+      <div className="scard-headline">
+        <span className="row-headline-cap">{HEADLINE_CAP[sortKey]}</span>
+        <Num className="row-headline">{headline(row, sortKey)}</Num>
+      </div>
+
+      <div className="scard-foot">
+        <div className="scard-stats">
           <span>
             <span className="row-stat-label">risk</span>
             <Num>{signedUsd(c.max_loss)}</Num>
@@ -97,18 +112,10 @@ export function Row({
             <Num>{bes}</Num>
           </span>
         </div>
-      </div>
-
-      <div className="row-aside">
-        <div>
-          <div className="row-headline-cap">{HEADLINE_CAP[sortKey]}</div>
-          <Num className="row-headline">{headline(row, sortKey)}</Num>
-        </div>
         <Sparkline pnl={row.pnl} />
-        <span className="tier-badge">{TIER_LABEL[c.capital_tier]}</span>
       </div>
     </button>
   );
 }
 
-export default Row;
+export default Card;

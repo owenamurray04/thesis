@@ -1,5 +1,5 @@
-// Public entry for the visualization layer (Slice 1, design doc 8.2). The app
-// shell mounts BeliefCanvas; everything else here is internal composition.
+// Public entry for the visualization layer (design doc 8.2): the price x time
+// canvas the belief cloud is sculpted in.
 
-export { BeliefCanvas } from "./BeliefCanvas";
-export type { BeliefCanvasProps } from "./BeliefCanvas";
+export { PredictionCanvas } from "./PredictionCanvas";
+export type { PredictionCanvasProps } from "./PredictionCanvas";
